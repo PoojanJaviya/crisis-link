@@ -75,10 +75,10 @@
       <span>CrisisLink</span>
     </div>
     <div class="navbar-links">
-      <a href="index.html" class="nav-link">🏠 <span>Home</span></a>
-      <a href="guest.html" class="nav-link">🔥 <span>Report</span></a>
-      <a href="staff.html" class="nav-link active">👤 <span>Staff</span></a>
-      <a href="admin.html" class="nav-link">🛡️ <span>Admin</span></a>
+      <div class="nav-user-badge" id="userBadge" style="display:none;">
+        👤 <span id="userName"></span>
+      </div>
+      <a href="#" class="nav-link" id="logoutBtn">🚪 <span>Logout</span></a>
     </div>
   </nav>
 
@@ -152,6 +152,12 @@
           </div>
         </div>
 
+        <!-- Assigned info (read-only) -->
+        <div class="form-group">
+          <label class="form-label">Currently Assigned To</label>
+          <div class="form-input" id="modalAssignedDisplay" style="opacity:0.7;cursor:default;">Unassigned</div>
+        </div>
+
         <!-- Status -->
         <div class="form-group">
           <label class="form-label" for="modalStatus">Update Status</label>
@@ -160,18 +166,6 @@
             <option value="in-progress">🔵 In Progress</option>
             <option value="resolved">🟢 Resolved</option>
           </select>
-        </div>
-
-        <!-- Assigned to -->
-        <div class="form-group">
-          <label class="form-label" for="modalAssigned">Assigned To</label>
-          <input
-            class="form-input"
-            type="text"
-            id="modalAssigned"
-            placeholder="Your name or staff ID…"
-            maxlength="100"
-          />
         </div>
       </div>
       <div class="modal-footer">

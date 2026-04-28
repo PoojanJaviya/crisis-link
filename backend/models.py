@@ -7,6 +7,25 @@ from typing import Optional, Literal
 from pydantic import BaseModel, Field
 
 
+# ── Auth Models ───────────────────────────────────────────────────────────────
+
+class LoginRequest(BaseModel):
+    """Body for POST /auth/login — Staff or Admin login."""
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=128)
+    role: Literal["staff", "admin"] = Field(
+        ..., description="Role the user is trying to log in as"
+    )
+
+
+class TokenResponse(BaseModel):
+    """JWT token response returned after successful login."""
+    access_token: str
+    token_type: str = "bearer"
+    role: str
+    display_name: str
+
+
 # ── Request Models ────────────────────────────────────────────────────────────
 
 class CreateIncidentRequest(BaseModel):

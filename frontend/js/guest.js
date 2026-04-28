@@ -4,6 +4,26 @@
  */
 
 import { createIncident, showToast } from './api.js';
+import { requireAuth, getGuestToken, isAuthenticated } from './auth.js';
+
+// ── Auth Guard ──────────────────────────────────────────────
+// If came from QR code (?auto=1), get a guest token first
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('auto') === '1' && !isAuthenticated()) {
+    try {
+      await getGuestToken();
+      // Remove the query param to avoid re-triggering
+      window.history.replaceState({}, '', 'guest.html');
+    } catch {
+      window.location.href = 'index.html';
+      return;
+    }
+  }
+
+  // Require guest, staff, or admin role
+  requireAuth('guest', 'staff', 'admin');
+})();
 
 // ── DOM refs ────────────────────────────────────────────────
 const typeBtns       = document.querySelectorAll('.type-btn');

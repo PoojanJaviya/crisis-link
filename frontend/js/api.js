@@ -1,17 +1,37 @@
 /**
  * CrisisLink — Centralized API Helper
  * All fetch calls to the FastAPI backend live here.
+ * JWT Bearer token is automatically attached to every request.
  */
+
+import { getToken } from './auth.js';
 
 const API_BASE = 'http://localhost:8000/api';
 
-/** Generic fetch wrapper with error handling */
+/** Generic fetch wrapper with auth header and error handling */
 async function apiFetch(path, options = {}) {
   const url = `${API_BASE}${path}`;
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  });
+  const token = getToken();
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  // Attach JWT if available
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, { ...options, headers });
+
+  // If 401 Unauthorized — session expired or invalid token
+  if (response.status === 401) {
+    localStorage.removeItem('crisislink_token');
+    localStorage.removeItem('crisislink_user');
+    window.location.href = 'index.html';
+    throw new Error('Session expired. Please log in again.');
+  }
 
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;
@@ -64,6 +84,14 @@ export async function updateIncident(id, updates) {
     method: 'PATCH',
     body: JSON.stringify(updates),
   });
+}
+
+/**
+ * GET /api/auth/staff — Fetch list of staff members
+ * @returns {Promise<Array<{username: string, display_name: string}>>}
+ */
+export async function getStaffMembers() {
+  return apiFetch('/auth/staff');
 }
 
 // ── Utility helpers ──────────────────────────────────────────

@@ -6,6 +6,8 @@
   <title>CrisisLink — Real-Time Emergency Coordination</title>
   <meta name="description" content="CrisisLink: Hotel emergency coordination system. Report incidents, manage response teams, and resolve crises in real time." />
   <link rel="stylesheet" href="css/style.css" />
+  <!-- QR Code library (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     /* Hero */
     .hero {
@@ -102,7 +104,6 @@
       gap: 14px;
       cursor: pointer;
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      text-decoration: none;
       color: inherit;
       position: relative;
       overflow: hidden;
@@ -124,6 +125,12 @@
       box-shadow: var(--card-shadow);
       transform: translateY(-4px) scale(1.01);
     }
+
+    .role-card.expanded {
+      border-color: var(--card-border-hover);
+      box-shadow: var(--card-shadow);
+    }
+    .role-card.expanded::before { opacity: 1; }
 
     .role-card-guest {
       --card-glow: radial-gradient(ellipse at top left, rgba(255,59,92,0.06), transparent 60%);
@@ -203,6 +210,115 @@
     .role-card-staff .role-cta { color: var(--blue); }
     .role-card-admin .role-cta { color: var(--purple); }
 
+    /* ── Login Form (inside role cards) ─────────────────── */
+    .auth-form {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      padding-top: 16px;
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+      position: relative;
+      z-index: 2;
+      animation: slideDown 0.3s ease;
+    }
+
+    .auth-form.visible {
+      display: flex;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .auth-form .form-input {
+      background: rgba(0,0,0,0.3);
+      border-color: var(--border2);
+    }
+
+    .auth-form .btn-login {
+      width: 100%;
+      padding: 14px;
+      font-size: 0.95rem;
+    }
+
+    .auth-error {
+      font-size: 0.8rem;
+      color: var(--red);
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: var(--red-dim);
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,59,92,0.2);
+    }
+
+    .auth-error.visible {
+      display: flex;
+    }
+
+    /* ── QR Code Section ───────────────────────────────── */
+    .qr-section {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding-top: 16px;
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+      position: relative;
+      z-index: 2;
+      animation: slideDown 0.3s ease;
+    }
+
+    .qr-section.visible {
+      display: flex;
+    }
+
+    .qr-container {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+
+    .qr-hint {
+      font-size: 0.78rem;
+      color: var(--text3);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .qr-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      font-size: 0.72rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .qr-divider::before,
+    .qr-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .btn-guest-enter {
+      width: 100%;
+      padding: 14px;
+      font-size: 0.95rem;
+    }
+
     /* Status strip */
     .status-strip {
       display: flex;
@@ -244,12 +360,6 @@
       <div class="brand-icon">🚨</div>
       <span>CrisisLink</span>
     </div>
-    <div class="navbar-links">
-      <a href="index.html" class="nav-link active">🏠 <span>Home</span></a>
-      <a href="guest.html" class="nav-link">🔥 <span>Report</span></a>
-      <a href="staff.html" class="nav-link">👤 <span>Staff</span></a>
-      <a href="admin.html" class="nav-link">🛡️ <span>Admin</span></a>
-    </div>
   </nav>
 
   <main class="page">
@@ -284,28 +394,38 @@
       </div>
     </div>
 
-    <!-- Role selection -->
+    <!-- Role selection + Auth -->
     <section class="roles-section">
       <div class="roles-label">Choose your role to get started</div>
       <div class="role-grid">
 
-        <!-- Guest -->
-        <a href="guest.html" class="role-card role-card-guest" id="guestCard">
+        <!-- Guest Card -->
+        <div class="role-card role-card-guest" id="guestCard">
           <div class="role-icon-wrap">🆘</div>
           <div>
             <div class="role-title">Guest / Visitor</div>
             <div class="role-desc">In an emergency? Report it immediately. Quick, simple, and instant.</div>
           </div>
           <ul class="role-features">
-            <li>Select emergency type (Fire / Medical / Security)</li>
-            <li>Enter your current location</li>
+            <li>Scan QR code or tap to enter</li>
+            <li>No login required</li>
             <li>Submit with one tap</li>
           </ul>
-          <div class="role-cta">Report Emergency →</div>
-        </a>
+          <div class="role-cta" id="guestCta">Scan QR or Enter →</div>
 
-        <!-- Staff -->
-        <a href="staff.html" class="role-card role-card-staff" id="staffCard">
+          <!-- QR + Quick Enter -->
+          <div class="qr-section" id="guestQrSection">
+            <div class="qr-container" id="qrCodeEl"></div>
+            <div class="qr-hint">Scan this QR code with your phone camera<br/>to open the emergency reporting page</div>
+            <div class="qr-divider">or</div>
+            <button class="btn btn-primary btn-guest-enter" id="guestEnterBtn">
+              🚨 Enter as Guest
+            </button>
+          </div>
+        </div>
+
+        <!-- Staff Card -->
+        <div class="role-card role-card-staff" id="staffCard">
           <div class="role-icon-wrap">👷</div>
           <div>
             <div class="role-title">Staff Member</div>
@@ -316,11 +436,30 @@
             <li>Claim &amp; assign incidents to yourself</li>
             <li>Update status as you respond</li>
           </ul>
-          <div class="role-cta">Open Staff Panel →</div>
-        </a>
+          <div class="role-cta" id="staffCta">Login to Staff Panel →</div>
 
-        <!-- Admin -->
-        <a href="admin.html" class="role-card role-card-admin" id="adminCard">
+          <!-- Staff Login Form -->
+          <div class="auth-form" id="staffLoginForm">
+            <div class="auth-error" id="staffError">
+              <span>❌</span>
+              <span id="staffErrorMsg"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="staffUsername">Username</label>
+              <input class="form-input" type="text" id="staffUsername" placeholder="Enter your username" autocomplete="username" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="staffPassword">Password</label>
+              <input class="form-input" type="password" id="staffPassword" placeholder="Enter your password" autocomplete="current-password" />
+            </div>
+            <button class="btn btn-blue btn-login" id="staffLoginBtn">
+              🔐 Login as Staff
+            </button>
+          </div>
+        </div>
+
+        <!-- Admin Card -->
+        <div class="role-card role-card-admin" id="adminCard">
           <div class="role-icon-wrap">🛡️</div>
           <div>
             <div class="role-title">Administrator</div>
@@ -331,8 +470,27 @@
             <li>Filter, search &amp; update any incident</li>
             <li>Analytics chart &amp; activity feed</li>
           </ul>
-          <div class="role-cta">Open Dashboard →</div>
-        </a>
+          <div class="role-cta" id="adminCta">Login to Dashboard →</div>
+
+          <!-- Admin Login Form -->
+          <div class="auth-form" id="adminLoginForm">
+            <div class="auth-error" id="adminError">
+              <span>❌</span>
+              <span id="adminErrorMsg"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="adminUsername">Username</label>
+              <input class="form-input" type="text" id="adminUsername" placeholder="Enter your username" autocomplete="username" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="adminPassword">Password</label>
+              <input class="form-input" type="password" id="adminPassword" placeholder="Enter your password" autocomplete="current-password" />
+            </div>
+            <button class="btn btn-primary btn-login" id="adminLoginBtn" style="background: linear-gradient(135deg, var(--purple), #8b5cf6);">
+              🔐 Login as Admin
+            </button>
+          </div>
+        </div>
 
       </div>
     </section>
@@ -342,5 +500,161 @@
   <footer class="footer">
     CrisisLink © 2025 — Built for Hackathon · FastAPI + Firebase Firestore
   </footer>
+
+  <script type="module">
+    import { login, getGuestToken, isAuthenticated, getRole } from './js/auth.js';
+
+    // ── If already logged in, redirect to the correct page ──
+    if (isAuthenticated()) {
+      const role = getRole();
+      if (role === 'guest') window.location.href = 'guest.html';
+      else if (role === 'staff') window.location.href = 'staff.html';
+      else if (role === 'admin') window.location.href = 'admin.html';
+    }
+
+    // ── Guest Card Toggle ─────────────────────────────────────
+    const guestCard = document.getElementById('guestCard');
+    const guestQr   = document.getElementById('guestQrSection');
+    const guestBtn  = document.getElementById('guestEnterBtn');
+
+    guestCard.addEventListener('click', (e) => {
+      // Don't toggle when clicking the button or QR section
+      if (e.target.closest('#guestEnterBtn') || e.target.closest('.qr-container')) return;
+      guestQr.classList.toggle('visible');
+      guestCard.classList.toggle('expanded', guestQr.classList.contains('visible'));
+    });
+
+    // Generate QR code pointing to guest page
+    const qrEl = document.getElementById('qrCodeEl');
+    const guestUrl = `${window.location.origin}/guest.html?auto=1`;
+    if (typeof QRCode !== 'undefined') {
+      new QRCode(qrEl, {
+        text: guestUrl,
+        width: 160,
+        height: 160,
+        colorDark: '#0a0e1a',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M,
+      });
+    } else {
+      qrEl.innerHTML = '<div style="padding:20px;color:#333;font-size:0.8rem;">QR loading…</div>';
+    }
+
+    // Guest enter button
+    guestBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      guestBtn.disabled = true;
+      guestBtn.innerHTML = '<span class="spinner"></span> Entering…';
+      try {
+        await getGuestToken();
+        window.location.href = 'guest.html';
+      } catch (err) {
+        guestBtn.disabled = false;
+        guestBtn.innerHTML = '🚨 Enter as Guest';
+        alert('Failed to connect: ' + err.message);
+      }
+    });
+
+    // ── Staff Card Toggle + Login ─────────────────────────────
+    const staffCard  = document.getElementById('staffCard');
+    const staffForm  = document.getElementById('staffLoginForm');
+    const staffBtn   = document.getElementById('staffLoginBtn');
+    const staffError = document.getElementById('staffError');
+    const staffErrMsg = document.getElementById('staffErrorMsg');
+
+    staffCard.addEventListener('click', (e) => {
+      if (e.target.closest('.auth-form')) return;
+      staffForm.classList.toggle('visible');
+      staffCard.classList.toggle('expanded', staffForm.classList.contains('visible'));
+      if (staffForm.classList.contains('visible')) {
+        document.getElementById('staffUsername').focus();
+      }
+    });
+
+    staffBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const username = document.getElementById('staffUsername').value.trim();
+      const password = document.getElementById('staffPassword').value;
+
+      if (!username || !password) {
+        staffErrMsg.textContent = 'Please enter both username and password.';
+        staffError.classList.add('visible');
+        return;
+      }
+
+      staffError.classList.remove('visible');
+      staffBtn.disabled = true;
+      staffBtn.innerHTML = '<span class="spinner"></span> Logging in…';
+
+      try {
+        await login(username, password, 'staff');
+        window.location.href = 'staff.html';
+      } catch (err) {
+        staffErrMsg.textContent = err.message;
+        staffError.classList.add('visible');
+        staffBtn.disabled = false;
+        staffBtn.innerHTML = '🔐 Login as Staff';
+      }
+    });
+
+    // Allow Enter key to submit staff form
+    document.getElementById('staffPassword').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') staffBtn.click();
+    });
+
+    // ── Admin Card Toggle + Login ─────────────────────────────
+    const adminCard  = document.getElementById('adminCard');
+    const adminForm  = document.getElementById('adminLoginForm');
+    const adminBtn   = document.getElementById('adminLoginBtn');
+    const adminError = document.getElementById('adminError');
+    const adminErrMsg = document.getElementById('adminErrorMsg');
+
+    adminCard.addEventListener('click', (e) => {
+      if (e.target.closest('.auth-form')) return;
+      adminForm.classList.toggle('visible');
+      adminCard.classList.toggle('expanded', adminForm.classList.contains('visible'));
+      if (adminForm.classList.contains('visible')) {
+        document.getElementById('adminUsername').focus();
+      }
+    });
+
+    adminBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const username = document.getElementById('adminUsername').value.trim();
+      const password = document.getElementById('adminPassword').value;
+
+      if (!username || !password) {
+        adminErrMsg.textContent = 'Please enter both username and password.';
+        adminError.classList.add('visible');
+        return;
+      }
+
+      adminError.classList.remove('visible');
+      adminBtn.disabled = true;
+      adminBtn.innerHTML = '<span class="spinner"></span> Logging in…';
+
+      try {
+        await login(username, password, 'admin');
+        window.location.href = 'admin.html';
+      } catch (err) {
+        adminErrMsg.textContent = err.message;
+        adminError.classList.add('visible');
+        adminBtn.disabled = false;
+        adminBtn.innerHTML = '🔐 Login as Admin';
+      }
+    });
+
+    // Allow Enter key to submit admin form
+    document.getElementById('adminPassword').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') adminBtn.click();
+    });
+
+    // ── Auto-enter for QR scan (guest.html?auto=1 redirect) ──
+    if (window.location.search.includes('auto=1')) {
+      getGuestToken().then(() => {
+        window.location.href = 'guest.html';
+      }).catch(() => {});
+    }
+  </script>
 </body>
 </html>

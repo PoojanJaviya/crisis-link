@@ -108,10 +108,8 @@
       <span>CrisisLink</span>
     </div>
     <div class="navbar-links">
-      <a href="index.html" class="nav-link">🏠 <span>Home</span></a>
-      <a href="guest.html" class="nav-link active">🔥 <span>Report</span></a>
-      <a href="staff.html" class="nav-link">👤 <span>Staff</span></a>
-      <a href="admin.html" class="nav-link">🛡️ <span>Admin</span></a>
+      <span class="nav-user-badge">🆘 Guest</span>
+      <a href="#" class="nav-link" id="logoutLink" onclick="event.preventDefault(); import('./js/auth.js').then(m => m.logout());">🚪 <span>Exit</span></a>
     </div>
   </nav>
 
@@ -208,7 +206,7 @@
       </div>
 
       <div class="back-link">
-        <a href="index.html">← Back to home</a>
+        <a href="#" onclick="event.preventDefault(); import('./js/auth.js').then(m => m.logout());">← Back to home</a>
       </div>
 
     </div>

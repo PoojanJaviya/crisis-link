@@ -137,6 +137,21 @@ input, textarea, select { font-family: var(--font); }
   color: var(--text);
 }
 
+/* User badge in navbar */
+.nav-user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 100px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
 /* ── Page Wrapper ────────────────────────────────────────── */
 .page {
   position: relative;
@@ -255,6 +270,19 @@ input, textarea, select { font-family: var(--font); }
 }
 
 .btn-lg { padding: 16px 36px; font-size: 1rem; border-radius: var(--radius); }
+
+.btn-sm { padding: 6px 14px; font-size: 0.78rem; border-radius: 6px; }
+
+/* Staff self-assignment indicators */
+.assigned-me {
+  color: var(--green) !important;
+  font-weight: 600;
+}
+
+.unassigned {
+  color: var(--text3) !important;
+  font-style: italic;
+}
 
 /* ── Form Elements ───────────────────────────────────────── */
 .form-group {

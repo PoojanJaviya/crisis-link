@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes.incidents import router as incidents_router
+from routes.auth import router as auth_router
 
 # Configure basic logging
 logging.basicConfig(
@@ -32,7 +33,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount incident routes
+# Mount routers
+app.include_router(auth_router, prefix="/api", tags=["Auth"])
 app.include_router(incidents_router, prefix="/api", tags=["Incidents"])
 
 

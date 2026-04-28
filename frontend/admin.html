@@ -97,10 +97,10 @@
       <span>CrisisLink</span>
     </div>
     <div class="navbar-links">
-      <a href="index.html" class="nav-link">🏠 <span>Home</span></a>
-      <a href="guest.html" class="nav-link">🔥 <span>Report</span></a>
-      <a href="staff.html" class="nav-link">👤 <span>Staff</span></a>
-      <a href="admin.html" class="nav-link active">🛡️ <span>Admin</span></a>
+      <div class="nav-user-badge" id="userBadge" style="display:none;">
+        🛡️ <span id="userName"></span>
+      </div>
+      <a href="#" class="nav-link" id="logoutBtn">🚪 <span>Logout</span></a>
     </div>
   </nav>
 
@@ -304,14 +304,11 @@
 
         <!-- Assigned -->
         <div class="form-group">
-          <label class="form-label" for="adminModalAssigned">Assigned To</label>
-          <input
-            class="form-input"
-            type="text"
-            id="adminModalAssigned"
-            placeholder="Staff name or ID…"
-            maxlength="100"
-          />
+          <label class="form-label" for="adminModalAssigned">Assign To Staff</label>
+          <select class="form-select" id="adminModalAssigned">
+            <option value="">— Unassigned —</option>
+            <!-- Populated dynamically from /api/auth/staff -->
+          </select>
         </div>
       </div>
       <div class="modal-footer">

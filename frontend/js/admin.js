@@ -4,10 +4,28 @@
  */
 
 import {
-  getAllIncidents, updateIncident, showToast,
+  getAllIncidents, updateIncident, getStaffMembers, showToast,
   timeAgo, formatDate, typeEmoji, statusLabel,
   statusBadgeClass, typeBadgeClass,
 } from './api.js';
+import { requireAuth, getUser, logout } from './auth.js';
+
+// ── Auth Guard ──────────────────────────────────────────────
+requireAuth('admin');
+
+// ── Show user info in navbar ─────────────────────────────────
+const user = getUser();
+const userBadge = document.getElementById('userBadge');
+const userNameEl = document.getElementById('userName');
+if (userBadge && user) {
+  userNameEl.textContent = user.display_name || 'Admin';
+  userBadge.style.display = 'flex';
+}
+
+document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  logout();
+});
 
 // ── DOM refs ────────────────────────────────────────────────
 const totalEl      = document.getElementById('statTotal');
@@ -33,6 +51,7 @@ const modalSaveBtn  = document.getElementById('adminModalSave');
 
 // ── State ────────────────────────────────────────────────────
 let allIncidents   = [];
+let staffList      = [];
 let currentFilter  = 'all';
 let searchQuery    = '';
 let currentEditId  = null;
@@ -40,8 +59,31 @@ let refreshTimer   = null;
 const INTERVAL     = 10000;
 
 // ── Init ─────────────────────────────────────────────────────
+loadStaffList();
 loadAll();
 startAutoRefresh();
+
+// ── Load Staff Members (for dropdown) ────────────────────────
+async function loadStaffList() {
+  try {
+    staffList = await getStaffMembers();
+    populateStaffDropdown();
+  } catch (err) {
+    console.warn('Could not load staff list:', err.message);
+  }
+}
+
+function populateStaffDropdown() {
+  if (!modalAssigned) return;
+  // Keep the "unassigned" option, then add staff
+  modalAssigned.innerHTML = '<option value="">— Unassigned —</option>';
+  staffList.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.display_name;
+    opt.textContent = `👤 ${s.display_name}`;
+    modalAssigned.appendChild(opt);
+  });
+}
 
 // ── Data Loading ─────────────────────────────────────────────
 async function loadAll() {
@@ -171,7 +213,13 @@ window.openAdminModal = function(id) {
   modalLoc.textContent     = inc.location;
   modalTypeTxt.textContent = `${typeEmoji(inc.type)} ${inc.type}`;
   modalStatus.value        = inc.status;
-  modalAssigned.value      = inc.assigned_to || '';
+
+  // Set the dropdown value — match by display_name
+  const matchingOption = Array.from(modalAssigned.options).find(
+    opt => opt.value === inc.assigned_to
+  );
+  modalAssigned.value = matchingOption ? inc.assigned_to : '';
+
   modal.classList.add('open');
 };
 
@@ -185,9 +233,10 @@ modal?.addEventListener('click', e => { if (e.target === modal) closeAdminModal(
 
 modalSaveBtn?.addEventListener('click', async () => {
   if (!currentEditId) return;
+  const selectedStaff = modalAssigned.value;
   const updates = {
     status:      modalStatus.value,
-    assigned_to: modalAssigned.value.trim() || undefined,
+    assigned_to: selectedStaff || undefined,
   };
 
   modalSaveBtn.disabled = true;

@@ -1,6 +1,7 @@
 /**
  * CrisisLink — Staff Page Logic
  * Lists active (pending + in-progress) incidents and lets staff update them.
+ * Staff can "Claim" an unassigned incident with one click (auto-assigns their name).
  */
 
 import {
@@ -8,6 +9,26 @@ import {
   timeAgo, typeEmoji, statusLabel,
   typeCardClass, statusBadgeClass, typeBadgeClass,
 } from './api.js';
+import { requireAuth, getUser, logout } from './auth.js';
+
+// ── Auth Guard ──────────────────────────────────────────────
+requireAuth('staff', 'admin');
+
+// ── Show user info in navbar ─────────────────────────────────
+const user = getUser();
+const myDisplayName = user?.display_name || 'Staff';
+
+const userBadge = document.getElementById('userBadge');
+const userNameEl = document.getElementById('userName');
+if (userBadge && user) {
+  userNameEl.textContent = myDisplayName;
+  userBadge.style.display = 'flex';
+}
+
+document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  logout();
+});
 
 // ── DOM refs ────────────────────────────────────────────────
 const incidentList   = document.getElementById('incidentList');
@@ -18,13 +39,13 @@ const pendingCountEl = document.getElementById('staffPendingCount');
 const activeCountEl  = document.getElementById('staffActiveCount');
 
 // Modal
-const modal         = document.getElementById('updateModal');
-const modalClose    = document.getElementById('modalClose');
-const modalLocation = document.getElementById('modalLocation');
-const modalType     = document.getElementById('modalType');
-const modalStatus   = document.getElementById('modalStatus');
-const modalAssigned = document.getElementById('modalAssigned');
-const modalSaveBtn  = document.getElementById('modalSaveBtn');
+const modal              = document.getElementById('updateModal');
+const modalClose         = document.getElementById('modalClose');
+const modalLocation      = document.getElementById('modalLocation');
+const modalType          = document.getElementById('modalType');
+const modalStatus        = document.getElementById('modalStatus');
+const modalAssignedDisplay = document.getElementById('modalAssignedDisplay');
+const modalSaveBtn       = document.getElementById('modalSaveBtn');
 
 // ── State ────────────────────────────────────────────────────
 let currentIncidentId = null;
@@ -78,7 +99,32 @@ function renderIncidents(incidents) {
     return;
   }
 
-  incidentList.innerHTML = incidents.map(inc => `
+  const isAssignedToMe = (inc) => inc.assigned_to === myDisplayName;
+
+  incidentList.innerHTML = incidents.map(inc => {
+    // Determine which action buttons to show
+    let actionBtns = '';
+    if (!inc.assigned_to) {
+      // Unassigned — show "Claim" button
+      actionBtns = `
+        <button class="btn btn-blue btn-sm" onclick="claimIncident('${inc.id}')">
+          🙋 Claim
+        </button>`;
+    } else if (isAssignedToMe(inc)) {
+      // Assigned to me — show update button
+      actionBtns = `
+        <button class="btn btn-secondary btn-ghost btn-sm" onclick="openModal('${inc.id}','${inc.location}','${inc.type}','${inc.status}','${escHtml(inc.assigned_to)}')">
+          ✏️ Update
+        </button>`;
+    } else {
+      // Assigned to someone else — no actions, read-only
+      actionBtns = `
+        <span style="font-size:0.75rem; color:var(--text3); font-style:italic;">
+          🔒 Handled by ${escHtml(inc.assigned_to)}
+        </span>`;
+    }
+
+    return `
     <div class="incident-card ${typeCardClass(inc.type)}">
       <div class="incident-header">
         <div class="incident-meta">
@@ -97,25 +143,50 @@ function renderIncidents(incidents) {
       <div class="incident-footer">
         <div style="display:flex; gap:12px; align-items:center;">
           <span class="incident-time">🕐 ${timeAgo(inc.created_at)}</span>
-          ${inc.assigned_to ? `<span class="incident-assigned">👤 ${escHtml(inc.assigned_to)}</span>` : ''}
+          ${inc.assigned_to
+            ? `<span class="incident-assigned ${isAssignedToMe(inc) ? 'assigned-me' : ''}">👤 ${escHtml(inc.assigned_to)}${isAssignedToMe(inc) ? ' (You)' : ''}</span>`
+            : '<span class="incident-assigned unassigned">⚪ Unassigned</span>'
+          }
         </div>
-        <button class="btn btn-secondary btn-ghost" onclick="openModal('${inc.id}','${inc.location}','${inc.type}','${inc.status}','${inc.assigned_to || ''}')">
-          ✏️ Update
-        </button>
+        <div style="display:flex; gap:8px;">
+          ${actionBtns}
+        </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
-// ── Modal ────────────────────────────────────────────────────
+
+// ── Claim Incident ──────────────────────────────────────────
+window.claimIncident = async function(id) {
+  const btn = event.target.closest('button');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    await updateIncident(id, {
+      assigned_to: myDisplayName,
+      status: 'in-progress',
+    });
+    showToast(`Claimed! You are now handling this incident.`, 'success');
+    await loadIncidents();
+  } catch (err) {
+    showToast(`Claim failed: ${err.message}`, 'error');
+    btn.disabled = false;
+    btn.innerHTML = '🙋 Claim';
+  }
+};
+
+
+// ── Modal (status update only) ──────────────────────────────
 window.openModal = function(id, location, type, status, assigned) {
   currentIncidentId = id;
   modalLocation.textContent = location;
   modalType.textContent     = `${typeEmoji(type)} ${type}`;
   modalStatus.value         = status;
-  modalAssigned.value       = assigned;
+  if (modalAssignedDisplay) {
+    modalAssignedDisplay.textContent = assigned || 'Unassigned';
+  }
   modal.classList.add('open');
-  modalAssigned.focus();
 };
 
 function closeModal() {
@@ -128,22 +199,13 @@ modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
 modalSaveBtn.addEventListener('click', async () => {
   if (!currentIncidentId) return;
-  const updates = {};
-  const newStatus   = modalStatus.value;
-  const newAssigned = modalAssigned.value.trim();
-  if (newStatus)   updates.status      = newStatus;
-  if (newAssigned) updates.assigned_to = newAssigned;
-
-  if (Object.keys(updates).length === 0) {
-    showToast('No changes to save.', 'info');
-    return;
-  }
+  const updates = { status: modalStatus.value };
 
   modalSaveBtn.disabled = true;
   modalSaveBtn.innerHTML = '<span class="spinner"></span> Saving…';
   try {
     await updateIncident(currentIncidentId, updates);
-    showToast('Incident updated successfully!', 'success');
+    showToast('Status updated successfully!', 'success');
     closeModal();
     await loadIncidents();
   } catch (err) {
