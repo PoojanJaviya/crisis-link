@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrisisLink — Report an Emergency</title>
+  <meta name="description" content="Report a fire, medical, or security emergency at your hotel instantly." />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .guest-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 48px 24px 80px;
+      min-height: calc(100vh - 69px);
+    }
+
+    .guest-form-card {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .guest-header {
+      text-align: center;
+    }
+
+    .guest-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, var(--red), #ff6535);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 16px;
+      box-shadow: 0 0 30px rgba(255,59,92,0.45);
+      animation: pulse-brand 2s ease-in-out infinite;
+    }
+
+    .guest-header h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .guest-header p {
+      font-size: 0.9rem;
+      color: var(--text2);
+      margin-top: 6px;
+    }
+
+    #formSection {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    #successSection {
+      display: none;
+    }
+
+    .urgency-note {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: var(--red-dim);
+      border: 1px solid rgba(255,59,92,0.25);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      color: var(--red);
+      font-weight: 500;
+    }
+
+    .submit-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #submitBtn {
+      width: 100%;
+      padding: 16px;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+    }
+
+    .back-link {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text3);
+    }
+
+    .back-link a { color: var(--blue); }
+    .back-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="brand-icon">🚨</div>
+      <span>CrisisLink</span>
+    </div>
+    <div class="navbar-links">
+      <a href="index.html" class="nav-link">🏠 <span>Home</span></a>
+      <a href="guest.html" class="nav-link active">🔥 <span>Report</span></a>
+      <a href="staff.html" class="nav-link">👤 <span>Staff</span></a>
+      <a href="admin.html" class="nav-link">🛡️ <span>Admin</span></a>
+    </div>
+  </nav>
+
+  <main class="page guest-wrap">
+    <div class="guest-form-card">
+
+      <!-- Header -->
+      <div class="guest-header">
+        <div class="guest-icon">🆘</div>
+        <h1>Report an Emergency</h1>
+        <p>Fill in the details below. Help is on the way immediately.</p>
+      </div>
+
+      <!-- Form -->
+      <div class="card" style="padding: 32px;">
+        <div id="formSection">
+
+          <!-- Urgency note -->
+          <div class="urgency-note">
+            ⚡ Your report is sent directly to hotel emergency staff in real time.
+          </div>
+
+          <!-- Emergency Type -->
+          <div class="form-group">
+            <label class="form-label">Emergency Type</label>
+            <div class="type-selector">
+              <button class="type-btn" data-type="fire" id="typeFire">
+                <span class="type-icon">🔥</span>
+                Fire
+              </button>
+              <button class="type-btn" data-type="medical" id="typeMedical">
+                <span class="type-icon">🏥</span>
+                Medical
+              </button>
+              <button class="type-btn" data-type="security" id="typeSecurity">
+                <span class="type-icon">🔒</span>
+                Security
+              </button>
+            </div>
+          </div>
+
+          <!-- Location -->
+          <div class="form-group">
+            <label class="form-label" for="locationInput">Your Location</label>
+            <input
+              class="form-input"
+              type="text"
+              id="locationInput"
+              placeholder="e.g. Room 203, Lobby, Pool Area…"
+              maxlength="100"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Description -->
+          <div class="form-group">
+            <label class="form-label" for="descInput">Description <span style="color:var(--text3); font-weight:400; text-transform:none; letter-spacing:0;">(optional)</span></label>
+            <textarea
+              class="form-textarea"
+              id="descInput"
+              placeholder="Describe the emergency in a few words…"
+              maxlength="500"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <!-- Submit -->
+          <div class="submit-row">
+            <button class="btn btn-primary btn-lg" id="submitBtn">
+              🚨 Report Emergency
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Success state -->
+        <div id="successSection">
+          <div class="success-panel">
+            <div class="success-icon">✅</div>
+            <h2>Emergency Reported!</h2>
+            <p>
+              Your emergency has been reported and hotel staff have been notified immediately.
+              Stay calm — help is on the way.
+            </p>
+            <div style="width:100%;">
+              <div class="form-label" style="text-align:center; margin-bottom:8px;">Your Incident ID</div>
+              <div class="incident-id-box" id="incidentIdEl"></div>
+            </div>
+            <button class="btn btn-secondary" id="newReportBtn" style="margin-top:8px;">
+              ＋ Report Another Incident
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="back-link">
+        <a href="index.html">← Back to home</a>
+      </div>
+
+    </div>
+  </main>
+
+  <script type="module" src="js/guest.js"></script>
+</body>
+</html>

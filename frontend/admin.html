@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrisisLink — Admin Dashboard</title>
+  <meta name="description" content="CrisisLink admin command center — monitor all incidents, analytics, and team activity in real time." />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* Admin layout: main content + sidebar */
+    .admin-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 24px;
+      padding-bottom: 60px;
+      align-items: start;
+    }
+
+    @media (max-width: 960px) {
+      .admin-layout { grid-template-columns: 1fr; }
+    }
+
+    .main-col { display: flex; flex-direction: column; gap: 20px; }
+    .side-col  { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Search + filter bar */
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+
+    #searchInput {
+      padding-left: 36px;
+      width: 100%;
+    }
+
+    /* Sidebar widgets */
+    .widget-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text3);
+      margin-bottom: 16px;
+    }
+
+    #activityFeed {
+      max-height: 340px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border2) transparent;
+    }
+
+    #activityFeed::-webkit-scrollbar { width: 4px; }
+    #activityFeed::-webkit-scrollbar-track { background: transparent; }
+    #activityFeed::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+    /* Quick tips */
+    .tip-box {
+      background: var(--blue-dim);
+      border: 1px solid rgba(78,143,255,0.2);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      font-size: 0.8rem;
+      color: var(--text2);
+      line-height: 1.6;
+    }
+
+    .tip-box strong { color: var(--blue); }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="brand-icon">🚨</div>
+      <span>CrisisLink</span>
+    </div>
+    <div class="navbar-links">
+      <a href="index.html" class="nav-link">🏠 <span>Home</span></a>
+      <a href="guest.html" class="nav-link">🔥 <span>Report</span></a>
+      <a href="staff.html" class="nav-link">👤 <span>Staff</span></a>
+      <a href="admin.html" class="nav-link active">🛡️ <span>Admin</span></a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <div class="container">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">🛡️ Command Center</h1>
+          <div class="page-subtitle">All incidents — real-time monitoring &amp; management</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="refresh-bar">
+            <div class="refresh-dot"></div>
+            <span id="adminLastUpdated">Loading…</span>
+          </div>
+          <button class="btn btn-ghost" id="adminRefreshBtn">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stat-grid">
+        <div class="stat-card stat-total">
+          <div class="stat-icon">📋</div>
+          <div class="stat-label">Total Incidents</div>
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-sub">All time</div>
+        </div>
+        <div class="stat-card stat-pending">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-label">Pending</div>
+          <div class="stat-value" id="statPending">0</div>
+          <div class="stat-sub">Awaiting response</div>
+        </div>
+        <div class="stat-card stat-active">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-label">In Progress</div>
+          <div class="stat-value" id="statProgress">0</div>
+          <div class="stat-sub">Being handled</div>
+        </div>
+        <div class="stat-card stat-done">
+          <div class="stat-icon">✅</div>
+          <div class="stat-label">Resolved</div>
+          <div class="stat-value" id="statResolved">0</div>
+          <div class="stat-sub">Closed incidents</div>
+        </div>
+      </div>
+
+      <!-- Main layout -->
+      <div class="admin-layout">
+
+        <!-- LEFT: Table -->
+        <div class="main-col">
+
+          <!-- Controls bar -->
+          <div class="controls-bar">
+            <div class="search-wrap">
+              <span class="search-icon">🔍</span>
+              <input
+                class="form-input"
+                type="text"
+                id="searchInput"
+                placeholder="Search by location, type, staff…"
+              />
+            </div>
+            <div class="filter-tabs">
+              <button class="filter-tab active" data-filter="all">All</button>
+              <button class="filter-tab" data-filter="pending">Pending</button>
+              <button class="filter-tab" data-filter="in-progress">In Progress</button>
+              <button class="filter-tab" data-filter="resolved">Resolved</button>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Location</th>
+                  <th>Description</th>
+                  <th>Status</th>
+                  <th>Assigned To</th>
+                  <th>Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="incidentTableBody">
+                <tr>
+                  <td colspan="7">
+                    <div class="loading-overlay">
+                      <div class="spinner"></div>
+                      <span>Loading incidents…</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: Sidebar -->
+        <div class="side-col">
+
+          <!-- Donut Chart -->
+          <div class="card">
+            <div class="widget-title">Incidents by Type</div>
+            <div class="chart-wrap">
+              <div class="donut-container">
+                <svg id="donutChart" width="160" height="160" viewBox="0 0 160 160"></svg>
+                <div class="donut-center">
+                  <div class="donut-center-num" id="donutCenterNum">0</div>
+                  <div>total</div>
+                </div>
+              </div>
+              <div class="chart-legend">
+                <div class="legend-item">
+                  <div class="legend-label">
+                    <div class="legend-dot" style="background:var(--red);"></div>
+                    🔥 Fire
+                  </div>
+                  <div class="legend-count" id="legFire">0</div>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-label">
+                    <div class="legend-dot" style="background:var(--blue);"></div>
+                    🏥 Medical
+                  </div>
+                  <div class="legend-count" id="legMedical">0</div>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-label">
+                    <div class="legend-dot" style="background:var(--amber);"></div>
+                    🔒 Security
+                  </div>
+                  <div class="legend-count" id="legSecurity">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Feed -->
+          <div class="card">
+            <div class="widget-title">Recent Activity</div>
+            <div id="activityFeed">
+              <div class="loading-overlay" style="padding:24px;">
+                <div class="spinner"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tip -->
+          <div class="tip-box">
+            <strong>⚡ Auto-refresh</strong> is active every 10 seconds.
+            Click <strong>Refresh</strong> anytime for an instant update.
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="adminModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">✏️ Edit Incident</div>
+        <button class="modal-close" id="adminModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Read-only info -->
+        <div class="card card-sm" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;gap:16px;">
+            <div>
+              <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Incident ID</div>
+              <div style="font-family:monospace;font-size:0.8rem;color:var(--blue);" id="adminModalIncId"></div>
+            </div>
+            <div>
+              <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Type</div>
+              <div style="font-weight:700;" id="adminModalType"></div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Location</div>
+            <div style="font-weight:700;" id="adminModalLocation"></div>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="form-group">
+          <label class="form-label" for="adminModalStatus">Status</label>
+          <select class="form-select" id="adminModalStatus">
+            <option value="pending">🟡 Pending</option>
+            <option value="in-progress">🔵 In Progress</option>
+            <option value="resolved">🟢 Resolved</option>
+          </select>
+        </div>
+
+        <!-- Assigned -->
+        <div class="form-group">
+          <label class="form-label" for="adminModalAssigned">Assigned To</label>
+          <input
+            class="form-input"
+            type="text"
+            id="adminModalAssigned"
+            placeholder="Staff name or ID…"
+            maxlength="100"
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="adminModalCancel">Cancel</button>
+        <button class="btn btn-primary" id="adminModalSave">💾 Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/admin.js"></script>
+  <script>
+    // Cancel button wiring (outside module scope)
+    document.getElementById('adminModalCancel')?.addEventListener('click', () => {
+      document.getElementById('adminModal').classList.remove('open');
+    });
+  </script>
+</body>
+</html>

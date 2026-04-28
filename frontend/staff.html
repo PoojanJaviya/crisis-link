@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrisisLink — Staff Panel</title>
+  <meta name="description" content="Staff emergency response panel — view and update active incidents in real time." />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .staff-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      padding-bottom: 60px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    #incidentList {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .staff-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .staff-stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .staff-stat-val {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .staff-stat-lbl {
+      font-size: 0.72rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="brand-icon">🚨</div>
+      <span>CrisisLink</span>
+    </div>
+    <div class="navbar-links">
+      <a href="index.html" class="nav-link">🏠 <span>Home</span></a>
+      <a href="guest.html" class="nav-link">🔥 <span>Report</span></a>
+      <a href="staff.html" class="nav-link active">👤 <span>Staff</span></a>
+      <a href="admin.html" class="nav-link">🛡️ <span>Admin</span></a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <div class="container">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">👷 Staff Panel</h1>
+          <div class="page-subtitle">Active incidents requiring your attention</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="refresh-bar">
+            <div class="refresh-dot"></div>
+            <span id="lastUpdated">Loading…</span>
+          </div>
+          <button class="btn btn-ghost" id="refreshBtn">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="staff-stat-grid">
+        <div class="staff-stat">
+          <div class="staff-stat-val" id="staffTotalCount">—</div>
+          <div class="staff-stat-lbl">Active Total</div>
+        </div>
+        <div class="staff-stat">
+          <div class="staff-stat-val" style="color:var(--amber);" id="staffPendingCount">—</div>
+          <div class="staff-stat-lbl">Pending</div>
+        </div>
+        <div class="staff-stat">
+          <div class="staff-stat-val" style="color:var(--blue);" id="staffActiveCount">—</div>
+          <div class="staff-stat-lbl">In Progress</div>
+        </div>
+      </div>
+
+      <!-- Incident list -->
+      <div class="staff-layout">
+        <div>
+          <div class="section-header">
+            <div class="section-title">🔴 Active Incidents</div>
+            <div style="font-size:0.78rem;color:var(--text3);">Auto-refreshes every 15s</div>
+          </div>
+          <div id="incidentList">
+            <div class="loading-overlay">
+              <div class="spinner"></div>
+              <span>Loading incidents…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Update Modal -->
+  <div class="modal-overlay" id="updateModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">✏️ Update Incident</div>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Incident info (read-only) -->
+        <div class="card card-sm" style="display:flex;gap:12px;align-items:center;">
+          <div style="font-size:1.4rem;" id="modalType"></div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Location</div>
+            <div style="font-weight:700;" id="modalLocation"></div>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="form-group">
+          <label class="form-label" for="modalStatus">Update Status</label>
+          <select class="form-select" id="modalStatus">
+            <option value="pending">🟡 Pending</option>
+            <option value="in-progress">🔵 In Progress</option>
+            <option value="resolved">🟢 Resolved</option>
+          </select>
+        </div>
+
+        <!-- Assigned to -->
+        <div class="form-group">
+          <label class="form-label" for="modalAssigned">Assigned To</label>
+          <input
+            class="form-input"
+            type="text"
+            id="modalAssigned"
+            placeholder="Your name or staff ID…"
+            maxlength="100"
+          />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="document.getElementById('updateModal').classList.remove('open')">Cancel</button>
+        <button class="btn btn-primary" id="modalSaveBtn">💾 Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/staff.js"></script>
+</body>
+</html>
